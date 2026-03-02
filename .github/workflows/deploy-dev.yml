@@ -3,8 +3,7 @@ name: Deploy Dev
 on:
   push:
     paths:
-      - 'dev/version.yml'
-
+      - main
 jobs:
   deploy:
     runs-on: ubuntu-latest
