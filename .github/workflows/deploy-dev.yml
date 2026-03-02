@@ -1,9 +1,7 @@
 name: Deploy Dev
 
 on:
-  push:
-    paths:
-      - main
+  workflow_dispatch:
 jobs:
   deploy:
     runs-on: ubuntu-latest
