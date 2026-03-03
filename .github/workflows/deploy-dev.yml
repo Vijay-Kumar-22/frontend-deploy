@@ -11,41 +11,64 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout deployment repo
       - name: Checkout deployment repo
         uses: actions/checkout@v4
 
+      # 2️⃣ Read version from version.yml
       - name: Read version
         run: |
           VERSION=$(grep version dev/version.yml | awk '{print $2}')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Deploying version: $VERSION"
 
+      # 3️⃣ Checkout frontend repo by tag into subfolder
       - name: Checkout frontend repo by tag
         uses: actions/checkout@v4
         with:
           repository: Vijay-Kumar-22/frontend
           ref: ${{ env.VERSION }}
           token: ${{ secrets.PAT_TOKEN }}
+          path: frontend
 
+      # 4️⃣ Setup Node
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
+      # 5️⃣ Install dependencies
       - name: Install dependencies
-        run: npm ci
+        run: cd frontend && npm ci
 
+      # 6️⃣ Build project
       - name: Build project
-        run: npm run build
+        run: cd frontend && npm run build
 
+      # 7️⃣ Deploy to S3
       - name: Deploy to S3
-        run: aws s3 sync dist/ s3://frontend-dev-vijay --delete
+        run: aws s3 sync frontend/dist/ s3://frontend-dev-vijay --delete
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
 
+      # 8️⃣ Invalidate CloudFront and wait until complete
       - name: Invalidate CloudFront
-        run: aws cloudfront create-invalidation --distribution-id E1HFRWXCJ4XHHH --paths "/*"
+        run: |
+          INVALIDATION_ID=$(aws cloudfront create-invalidation \
+            --distribution-id E1HFRWXCJ4XHHH \
+            --paths "/*" \
+            --query 'Invalidation.Id' \
+            --output text)
+
+          echo "Created Invalidation: $INVALIDATION_ID"
+
+          aws cloudfront wait invalidation-completed \
+            --distribution-id E1HFRWXCJ4XHHH \
+            --id $INVALIDATION_ID
+
+          echo "Invalidation completed successfully."
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
