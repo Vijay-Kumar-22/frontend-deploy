@@ -52,11 +52,11 @@ jobs:
       - name: Generate env.js
         run: |
           echo "window.__ENV__ = {" > env.js
-          echo "  VITE_API_BASE_URL: '${{ secrets.API_BASE_URL }}'," >> env.js
-          echo "  VITE_API_TIMEOUT: '${{ secrets.API_TIMEOUT }}'," >> env.js
-          echo "  VITE_ENABLE_REDUX_DEVTOOLS: '${{ secrets.ENABLE_REDUX_DEVTOOLS }}'," >> env.js
-          echo "  VITE_ENABLE_LOGGING: '${{ secrets.ENABLE_LOGGING }}'," >> env.js
-          echo "  VITE_ENABLE_DEBUG: '${{ secrets.ENABLE_DEBUG }}'" >> env.js
+          echo "  API_BASE_URL: '${{ secrets.API_BASE_URL }}'," >> env.js
+          echo "  API_TIMEOUT: '${{ secrets.API_TIMEOUT }}'," >> env.js
+          echo "  ENABLE_REDUX_DEVTOOLS: '${{ secrets.ENABLE_REDUX_DEVTOOLS }}'," >> env.js
+          echo "  ENABLE_LOGGING: '${{ secrets.ENABLE_LOGGING }}'," >> env.js
+          echo "  ENABLE_DEBUG: '${{ secrets.ENABLE_DEBUG }}'" >> env.js
           echo "};" >> env.js
 
       # 8️⃣ Deploy build files to S3
