@@ -22,7 +22,7 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "Deploying version: $VERSION"
 
-      # 3️⃣ Checkout frontend repo by tag into subfolder
+      # 3️⃣ Checkout frontend repo by tag
       - name: Checkout frontend repo by tag
         uses: actions/checkout@v4
         with:
@@ -45,15 +45,34 @@ jobs:
       - name: Build project
         run: cd frontend && npm run build
 
-      # 7️⃣ Deploy to S3
-      - name: Deploy to S3
+      # 7️⃣ Generate runtime env.js (NEW STEP 🔥)
+      - name: Generate env.js
+        run: |
+          echo "window.__ENV__ = {" > env.js
+          echo "  VITE_API_BASE_URL: '${{ secrets.DEV_API_BASE_URL }}'," >> env.js
+          echo "  VITE_API_TIMEOUT: '${{ secrets.DEV_API_TIMEOUT }}'," >> env.js
+          echo "  VITE_ENABLE_REDUX_DEVTOOLS: '${{ secrets.DEV_ENABLE_REDUX_DEVTOOLS }}'," >> env.js
+          echo "  VITE_ENABLE_LOGGING: '${{ secrets.DEV_ENABLE_LOGGING }}'," >> env.js
+          echo "  VITE_ENABLE_DEBUG: '${{ secrets.DEV_ENABLE_DEBUG }}'" >> env.js
+          echo "};" >> env.js
+
+      # 8️⃣ Deploy build files to S3
+      - name: Deploy static files to S3
         run: aws s3 sync frontend/dist/ s3://frontend-dev-vijay --delete
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
 
-      # 8️⃣ Invalidate CloudFront and wait until complete
+      # 9️⃣ Upload env.js separately (NEW 🔥)
+      - name: Upload env.js
+        run: aws s3 cp env.js s3://frontend-dev-vijay/env.js
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+
+      # 🔟 Invalidate CloudFront and wait
       - name: Invalidate CloudFront
         run: |
           INVALIDATION_ID=$(aws cloudfront create-invalidation \
