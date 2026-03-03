@@ -10,12 +10,15 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    # 👇 This connects to GitHub Environment "dev"
+    environment: dev
+
     steps:
       # 1️⃣ Checkout deployment repo
       - name: Checkout deployment repo
         uses: actions/checkout@v4
 
-      # 2️⃣ Read version from version.yml
+      # 2️⃣ Read version from dev/version.yml
       - name: Read version
         run: |
           VERSION=$(grep version dev/version.yml | awk '{print $2}')
@@ -36,6 +39,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: 'npm'
 
       # 5️⃣ Install dependencies
       - name: Install dependencies
@@ -45,26 +49,26 @@ jobs:
       - name: Build project
         run: cd frontend && npm run build
 
-      # 7️⃣ Generate runtime env.js (NEW STEP 🔥)
+      # 7️⃣ Generate runtime env.js (from GitHub Environment secrets)
       - name: Generate env.js
         run: |
           echo "window.__ENV__ = {" > env.js
-          echo "  VITE_API_BASE_URL: '${{ secrets.DEV_API_BASE_URL }}'," >> env.js
-          echo "  VITE_API_TIMEOUT: '${{ secrets.DEV_API_TIMEOUT }}'," >> env.js
-          echo "  VITE_ENABLE_REDUX_DEVTOOLS: '${{ secrets.DEV_ENABLE_REDUX_DEVTOOLS }}'," >> env.js
-          echo "  VITE_ENABLE_LOGGING: '${{ secrets.DEV_ENABLE_LOGGING }}'," >> env.js
-          echo "  VITE_ENABLE_DEBUG: '${{ secrets.DEV_ENABLE_DEBUG }}'" >> env.js
+          echo "  VITE_API_BASE_URL: '${{ secrets.API_BASE_URL }}'," >> env.js
+          echo "  VITE_API_TIMEOUT: '${{ secrets.API_TIMEOUT }}'," >> env.js
+          echo "  VITE_ENABLE_REDUX_DEVTOOLS: '${{ secrets.ENABLE_REDUX_DEVTOOLS }}'," >> env.js
+          echo "  VITE_ENABLE_LOGGING: '${{ secrets.ENABLE_LOGGING }}'," >> env.js
+          echo "  VITE_ENABLE_DEBUG: '${{ secrets.ENABLE_DEBUG }}'" >> env.js
           echo "};" >> env.js
 
       # 8️⃣ Deploy build files to S3
-      - name: Deploy static files to S3
+      - name: Upload static files to S3
         run: aws s3 sync frontend/dist/ s3://frontend-dev-vijay --delete
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
 
-      # 9️⃣ Upload env.js separately (NEW 🔥)
+      # 9️⃣ Upload env.js separately
       - name: Upload env.js
         run: aws s3 cp env.js s3://frontend-dev-vijay/env.js
         env:
@@ -72,7 +76,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
 
-      # 🔟 Invalidate CloudFront and wait
+      # 🔟 Invalidate CloudFront and wait until complete
       - name: Invalidate CloudFront
         run: |
           INVALIDATION_ID=$(aws cloudfront create-invalidation \
@@ -87,7 +91,7 @@ jobs:
             --distribution-id E1HFRWXCJ4XHHH \
             --id $INVALIDATION_ID
 
-          echo "Invalidation completed successfully."
+          echo "CloudFront invalidation completed."
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
