@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     # 👇 This connects to GitHub Environment "dev"
-    environment: qa
+    environment: dev
 
     steps:
       # 1️⃣ Checkout deployment repo
