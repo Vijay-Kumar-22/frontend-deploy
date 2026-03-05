@@ -64,7 +64,7 @@ jobs:
 
       # 8️⃣ Deploy build files to S3
       - name: Upload static files to S3
-        run: aws s3 sync frontend/dist/ s3://frontend-dev-vijay --delete
+        run: aws s3 sync frontend/dist/ s3://frontend-qa2
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -72,7 +72,9 @@ jobs:
 
       # 9️⃣ Upload env.js separately
       - name: Upload env.js
-        run: aws s3 cp env.js s3://frontend-dev-vijay/env.js
+        run: aws s3 cp env.js s3://
+      - name: Upload static files to S3
+        run: aws s3 sync frontend/dist/ s3://frontend-qa2/env.js
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
