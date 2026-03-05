@@ -47,7 +47,10 @@ jobs:
       # 6️⃣ Build project
       - name: Build project
         run: cd frontend && npm run build
-
+        
+      - name: Debug API_BASE_URL
+        run: echo "API_BASE_URL=${{ secrets.API_BASE_URL }}"
+        
       # 7️⃣ Generate runtime env.js (from GitHub Environment secrets)
       - name: Generate env.js
         run: |
