@@ -10,7 +10,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    # 👇 This connects to GitHub Environment "dev"
+    # Connect to GitHub Environment
     environment: dev
 
     steps:
@@ -18,7 +18,7 @@ jobs:
       - name: Checkout deployment repo
         uses: actions/checkout@v4
 
-      # 2️⃣ Read version from dev/version.yml
+      # 2️⃣ Read version
       - name: Read version
         run: |
           VERSION=$(grep version dev/version.yml | awk '{print $2}')
@@ -47,11 +47,12 @@ jobs:
       # 6️⃣ Build project
       - name: Build project
         run: cd frontend && npm run build
-        
+
+      # 7️⃣ Debug secret (optional)
       - name: Debug API_BASE_URL
         run: echo "${{ secrets.API_BASE_URL }}" | wc -c
-        
-      # 7️⃣ Generate runtime env.js (from GitHub Environment secrets)
+
+      # 8️⃣ Generate runtime env.js
       - name: Generate env.js
         run: |
           echo "window.__ENV__ = {" > env.js
@@ -62,25 +63,23 @@ jobs:
           echo "  VITE_ENABLE_DEBUG: '${{ secrets.ENABLE_DEBUG }}'" >> env.js
           echo "};" >> env.js
 
-      # 8️⃣ Deploy build files to S3
+      # 9️⃣ Upload React build to S3
       - name: Upload static files to S3
-        run: aws s3 sync frontend/dist/ s3://frontend-qa2
+        run: aws s3 sync frontend/dist/ s3://frontend-qa2 --delete
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
 
-      # 9️⃣ Upload env.js separately
+      # 🔟 Upload env.js
       - name: Upload env.js
-        run: aws s3 cp env.js s3://
-      - name: Upload static files to S3
-        run: aws s3 sync frontend/dist/ s3://frontend-qa2/env.js
+        run: aws s3 cp env.js s3://frontend-qa2/env.js --cache-control "no-store"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
 
-      # 🔟 Invalidate CloudFront and wait until complete
+      # 1️⃣1️⃣ Invalidate CloudFront
       - name: Invalidate CloudFront
         run: |
           INVALIDATION_ID=$(aws cloudfront create-invalidation \
